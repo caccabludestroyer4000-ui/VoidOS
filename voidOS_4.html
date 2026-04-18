@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VoidOS — Redefine Windows</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Bebas+Neue&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --void:#03030a;--void2:#080810;--surface:#0e0e1a;--surface2:#141424;
+  --border:rgba(255,255,255,0.055);--border-h:rgba(99,102,241,0.5);
+  --accent:#6366f1;--accent2:#818cf8;--accent3:#a5b4fc;
+  --cyan:#22d3ee;--purple:#c084fc;
+  --text:#e2e8f0;--text-muted:#64748b;--text-dim:#1e293b;
+  --mono:'Share Tech Mono',monospace;--display:'Bebas Neue',cursive;--body:'Inter',sans-serif;
+}
+html{scroll-behavior:smooth}
+body{background:var(--void);color:var(--text);font-family:var(--body);font-size:16px;line-height:1.7;overflow-x:hidden;cursor:none}
+
+/* CURSOR */
+#cursor{position:fixed;width:12px;height:12px;background:var(--accent);border-radius:50%;pointer-events:none;z-index:9999;transform:translate(-50%,-50%);transition:width .15s,height .15s,background .15s;mix-blend-mode:screen}
+#cursor-ring{position:fixed;width:40px;height:40px;border:1px solid rgba(99,102,241,0.5);border-radius:50%;pointer-events:none;z-index:9998;transform:translate(-50%,-50%);transition:width .2s,height .2s,border-color .2s}
+
+/* SCANLINES */
+body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,0.015) 3px,rgba(0,0,0,0.015) 4px);pointer-events:none;z-index:9990}
+
+/* NAV */
+nav{position:fixed;top:0;left:0;right:0;z-index:200;display:flex;align-items:center;justify-content:space-between;padding:1.1rem 3rem;background:rgba(3,3,10,0.75);backdrop-filter:blur(20px);border-bottom:1px solid var(--border)}
+.nav-logo{font-family:var(--display);font-size:1.9rem;letter-spacing:.12em;color:var(--text);display:flex;align-items:center;gap:.6rem;text-decoration:none}
+.nav-dot{width:8px;height:8px;background:var(--accent);border-radius:50%;box-shadow:0 0 12px var(--accent),0 0 24px rgba(99,102,241,.4);animation:blink 2s ease-in-out infinite}
+.nav-links{display:flex;gap:2.5rem;list-style:none}
+.nav-links a{color:var(--text-muted);text-decoration:none;font-family:var(--mono);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;transition:color .2s;position:relative}
+.nav-links a::after{content:'';position:absolute;bottom:-4px;left:0;right:0;height:1px;background:var(--accent);transform:scaleX(0);transform-origin:left;transition:transform .3s}
+.nav-links a:hover{color:var(--accent3)}
+.nav-links a:hover::after{transform:scaleX(1)}
+
+/* CANVAS */
+#galaxy-canvas{position:fixed;inset:0;pointer-events:none;z-index:0}
+#particle-canvas{position:fixed;inset:0;pointer-events:none;z-index:1;opacity:.55}
+
+/* HERO */
+.hero{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:8rem 2rem 5rem;position:relative;z-index:10;overflow:hidden}
+.hero-orb{position:absolute;border-radius:50%;filter:blur(80px);pointer-events:none}
+.hero-orb-1{width:600px;height:400px;top:-100px;left:50%;transform:translateX(-50%);background:radial-gradient(ellipse,rgba(99,102,241,.12) 0%,transparent 70%);animation:float1 8s ease-in-out infinite}
+.hero-orb-2{width:300px;height:300px;bottom:10%;right:10%;background:radial-gradient(ellipse,rgba(34,211,238,.07) 0%,transparent 70%);animation:float2 6s ease-in-out infinite}
+.hero-orb-3{width:250px;height:250px;bottom:20%;left:5%;background:radial-gradient(ellipse,rgba(192,132,252,.06) 0%,transparent 70%);animation:float1 10s ease-in-out infinite reverse}
+.hero-grid-lines{position:absolute;inset:0;background-image:linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px);background-size:70px 70px;mask-image:radial-gradient(ellipse 80% 60% at 50% 50%,black 10%,transparent 80%)}
+
+.badge{display:inline-flex;align-items:center;gap:.5rem;padding:.35rem 1rem;background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.3);border-radius:2px;font-family:var(--mono);font-size:.68rem;letter-spacing:.14em;color:var(--accent2);text-transform:uppercase;margin-bottom:2.2rem;animation:fadeUp .8s ease both}
+.badge-pulse{width:6px;height:6px;background:var(--cyan);border-radius:50%;animation:blink 1.4s ease-in-out infinite}
+
+.hero-title{font-family:var(--display);font-size:clamp(5.5rem,15vw,12rem);line-height:.88;letter-spacing:.02em;position:relative;animation:fadeUp .8s .1s ease both}
+.title-void{display:block;background:linear-gradient(135deg,#a5b4fc 0%,#818cf8 30%,#c084fc 70%,#6366f1 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;position:relative}
+.title-void::before,.title-void::after{content:attr(data-text);position:absolute;inset:0;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;background:inherit;opacity:0}
+.title-void:hover::before{animation:glitch1 .3s steps(2) forwards;clip-path:polygon(0 20%,100% 20%,100% 40%,0 40%);opacity:.7;background:linear-gradient(135deg,#22d3ee,#6366f1)}
+.title-void:hover::after{animation:glitch2 .3s steps(2) .05s forwards;clip-path:polygon(0 60%,100% 60%,100% 75%,0 75%);opacity:.5;background:linear-gradient(135deg,#c084fc,#22d3ee)}
+.title-os{display:block;font-size:.38em;letter-spacing:.5em;color:var(--text-muted);-webkit-text-fill-color:var(--text-muted);margin-top:.1em}
+
+.hero-sub{font-size:1.05rem;color:var(--text-muted);font-weight:300;max-width:460px;margin:1.8rem auto 3rem;animation:fadeUp .8s .2s ease both}
+.hero-cta{display:flex;gap:1rem;flex-wrap:wrap;justify-content:center;animation:fadeUp .8s .3s ease both}
+
+.btn{display:inline-flex;align-items:center;gap:.6rem;padding:1rem 2.4rem;font-family:var(--mono);font-size:.78rem;letter-spacing:.1em;text-transform:uppercase;text-decoration:none;cursor:none;border:none;clip-path:polygon(0 0,calc(100% - 14px) 0,100% 14px,100% 100%,14px 100%,0 calc(100% - 14px));transition:transform .15s,opacity .2s;position:relative;overflow:hidden}
+.btn::before{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.12),transparent);transform:translateX(-100%);transition:transform .5s}
+.btn:hover::before{transform:translateX(100%)}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-primary:hover{opacity:.9}
+.btn-ghost{background:transparent;color:var(--text-muted);border:1px solid rgba(255,255,255,.1)}
+.btn-ghost:hover{border-color:rgba(99,102,241,.5);color:var(--accent3)}
+
+.stats-bar{display:flex;flex-wrap:wrap;justify-content:center;margin:4rem auto 0;max-width:680px;border:1px solid var(--border);background:var(--surface);position:relative;overflow:hidden;animation:fadeUp .8s .4s ease both}
+.stats-bar::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--accent),transparent)}
+.stat{flex:1;min-width:130px;padding:1.4rem 1rem;text-align:center;border-right:1px solid var(--border)}
+.stat:last-child{border-right:none}
+.stat-val{font-family:var(--display);font-size:2.1rem;letter-spacing:.06em;color:var(--accent2);display:block}
+.stat-lbl{font-family:var(--mono);font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text-muted)}
+
+/* SECTIONS */
+.section-wrap{max-width:1120px;margin:0 auto;padding:7rem 2rem}
+.section-tag{font-family:var(--mono);font-size:.68rem;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);margin-bottom:.8rem;display:flex;align-items:center;gap:.8rem}
+.section-tag::after{content:'';width:48px;height:1px;background:var(--accent);opacity:.5}
+h2{font-family:var(--display);font-size:clamp(2.8rem,5vw,4.2rem);letter-spacing:.04em;line-height:.95;color:var(--text);margin-bottom:1rem}
+.section-sub{color:var(--text-muted);max-width:500px;font-size:.95rem;font-weight:300}
+
+/* FEATURE CARDS */
+.features-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:1px;background:var(--border);border:1px solid var(--border);margin-top:3.5rem}
+.fcard{background:var(--surface);padding:2.2rem;position:relative;overflow:hidden;cursor:none;transition:background .25s}
+.fcard::after{content:'';position:absolute;inset:0;background:radial-gradient(600px circle at var(--mx,50%) var(--my,50%),rgba(99,102,241,.09),transparent 40%);opacity:0;transition:opacity .3s;pointer-events:none}
+.fcard:hover{background:var(--surface2)}
+.fcard:hover::after{opacity:1}
+.fcard-bar{position:absolute;top:0;left:0;width:2px;height:0;background:linear-gradient(to bottom,var(--accent),transparent);transition:height .5s ease}
+.fcard:hover .fcard-bar{height:100%}
+.fcard-icon{width:46px;height:46px;background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.2);display:flex;align-items:center;justify-content:center;font-size:1.1rem;margin-bottom:1.3rem}
+.fcard-title{font-family:var(--display);font-size:1.45rem;letter-spacing:.06em;color:var(--text);margin-bottom:.5rem}
+.fcard-desc{font-size:.88rem;color:var(--text-muted);line-height:1.65}
+.fcard-tag{display:inline-block;margin-top:1.1rem;padding:.2rem .6rem;background:rgba(0,0,0,.3);border:1px solid var(--border);font-family:var(--mono);font-size:.62rem;letter-spacing:.08em;color:var(--text-dim)}
+
+/* DOWNLOAD */
+.dl-section-wrap{background:var(--void2);border-top:1px solid var(--border);border-bottom:1px solid var(--border);position:relative;overflow:hidden}
+.dl-section-wrap::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--accent),transparent)}
+.dl-card{background:var(--surface);border:1px solid rgba(99,102,241,.25);padding:2.5rem;max-width:560px;position:relative;overflow:hidden;cursor:none}
+.dl-card::after{content:'';position:absolute;inset:0;background:radial-gradient(600px circle at var(--mx,50%) var(--my,50%),rgba(99,102,241,.07),transparent 40%);opacity:0;transition:opacity .3s;pointer-events:none}
+.dl-card:hover::after{opacity:1}
+.dl-top-line{position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--accent),var(--purple),var(--cyan))}
+.dl-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:1.8rem}
+.dl-name{font-family:var(--display);font-size:2.2rem;letter-spacing:.06em}
+.dl-ver{font-family:var(--mono);font-size:.68rem;color:var(--cyan);background:rgba(34,211,238,.08);border:1px solid rgba(34,211,238,.2);padding:.25rem .6rem}
+.dl-row{display:flex;justify-content:space-between;align-items:center;padding:.55rem 0;border-bottom:1px solid var(--border)}
+.dl-row:last-of-type{border-bottom:none}
+.dl-key{font-family:var(--mono);font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted)}
+.dl-val{font-family:var(--mono);font-size:.8rem;color:var(--text)}
+.dl-coming{display:flex;align-items:center;justify-content:center;gap:.8rem;width:100%;margin-top:1.8rem;padding:1rem;background:rgba(255,255,255,.02);border:1px solid var(--border);font-family:var(--mono);font-size:.78rem;letter-spacing:.2em;color:var(--text-muted);text-transform:uppercase}
+.dl-coming-dot{width:8px;height:8px;background:var(--accent);border-radius:50%;animation:blink 1.2s infinite}
+.sha{margin-top:1rem;padding:.8rem 1rem;background:rgba(0,0,0,.4);border:1px solid var(--border);border-left:2px solid rgba(99,102,241,.4);font-family:var(--mono);font-size:.66rem;color:var(--text-muted);word-break:break-all;line-height:1.9}
+.sha strong{color:var(--accent2);font-weight:400;display:block;margin-bottom:.2rem}
+
+/* REQUIREMENTS */
+.req-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:1rem;margin-top:2.5rem}
+.req-card{background:var(--surface);border:1px solid var(--border);padding:1.4rem;position:relative;overflow:hidden;cursor:none;transition:border-color .2s,background .2s}
+.req-card::after{content:'';position:absolute;inset:0;background:radial-gradient(300px circle at var(--mx,50%) var(--my,50%),rgba(99,102,241,.07),transparent 60%);opacity:0;transition:opacity .3s;pointer-events:none}
+.req-card:hover{border-color:rgba(99,102,241,.3);background:var(--surface2)}
+.req-card:hover::after{opacity:1}
+.req-key{font-family:var(--mono);font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:.4rem}
+.req-val{font-size:.9rem;color:var(--text);line-height:1.5}
+.req-note{font-size:.78rem;color:var(--text-muted);margin-top:.15rem}
+
+/* SEP */
+.sep{display:flex;align-items:center;gap:1rem;padding:0 2rem;max-width:1120px;margin:0 auto}
+.sep::before,.sep::after{content:'';flex:1;height:1px;background:var(--border)}
+.sep span{font-family:var(--mono);font-size:.6rem;letter-spacing:.2em;color:var(--text-dim);white-space:nowrap}
+
+/* FOOTER */
+footer{border-top:1px solid var(--border);padding:3.5rem 2rem;text-align:center;font-family:var(--mono);font-size:.68rem;letter-spacing:.1em;color:var(--text-dim)}
+.footer-wordmark{font-family:var(--display);font-size:5rem;letter-spacing:.15em;color:rgba(255,255,255,.025);display:block;margin-bottom:.5rem;user-select:none}
+footer a{color:var(--text-muted);text-decoration:none;transition:color .2s}
+footer a:hover{color:var(--accent2)}
+.footer-links{display:flex;gap:2rem;justify-content:center;margin-top:1rem}
+
+/* REVEAL */
+.reveal{opacity:0;transform:translateY(36px);transition:opacity .7s ease,transform .7s ease}
+.reveal.visible{opacity:1;transform:translateY(0)}
+
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+@keyframes float1{0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(-20px)}}
+@keyframes float2{0%,100%{transform:translateY(0)}50%{transform:translateY(-15px)}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+@keyframes glitch1{0%{transform:translate(-3px,0)}50%{transform:translate(3px,0)}100%{transform:translate(0,0);opacity:0}}
+@keyframes glitch2{0%{transform:translate(3px,0)}50%{transform:translate(-3px,0)}100%{transform:translate(0,0);opacity:0}}
+
+@media(max-width:680px){
+  nav{padding:1rem 1.5rem}
+  .nav-links{display:none}
+  .section-wrap{padding:5rem 1.2rem}
+  body{cursor:auto}
+  #cursor,#cursor-ring{display:none}
+}
+</style>
+</head>
+<body>
+
+<div id="cursor"></div>
+<div id="cursor-ring"></div>
+<canvas id="galaxy-canvas"></canvas>
+<canvas id="particle-canvas"></canvas>
+
+<nav>
+  <a href="#" class="nav-logo"><span class="nav-dot"></span>VoidOS</a>
+  <ul class="nav-links">
+    <li><a href="#features">Features</a></li>
+    <li><a href="#download">Download</a></li>
+    <li><a href="#requirements">Requisiti</a></li>
+  </ul>
+</nav>
+
+<div class="hero">
+  <div class="hero-orb hero-orb-1"></div>
+  <div class="hero-orb hero-orb-2"></div>
+  <div class="hero-orb hero-orb-3"></div>
+  <div class="hero-grid-lines"></div>
+  <div class="badge"><span class="badge-pulse"></span>Custom Windows Build — v2.1.0 Stable</div>
+  <h1 class="hero-title">
+    <span class="title-void" data-text="VOID">VOID</span>
+    <span class="title-os">O &nbsp; S</span>
+  </h1>
+  <p class="hero-sub">Windows reimaginato. Depurato. Ottimizzato.<br>Prestazioni reali, senza il superfluo.</p>
+  <div class="hero-cta">
+    <a href="#download" class="btn btn-primary">↓ &nbsp; Scarica VoidOS</a>
+    <a href="#features" class="btn btn-ghost">Scopri di più</a>
+  </div>
+  <div class="stats-bar">
+    <div class="stat"><span class="stat-val">~2 GB</span><span class="stat-lbl">Dimensione ISO</span></div>
+    <div class="stat"><span class="stat-val">Win11</span><span class="stat-lbl">Base</span></div>
+    <div class="stat"><span class="stat-val">0</span><span class="stat-lbl">Bloatware</span></div>
+    <div class="stat"><span class="stat-val">x64</span><span class="stat-lbl">Architettura</span></div>
+  </div>
+</div>
+
+<div style="padding:2rem 0"><div class="sep"><span>// FEATURES //</span></div></div>
+
+<div class="section-wrap" id="features">
+  <div class="reveal">
+    <div class="section-tag">Features</div>
+    <h2>Costruito per chi<br>sa cosa vuole.</h2>
+    <p class="section-sub">VoidOS non è una distribuzione — è Windows riportato all'essenziale. Ogni scelta è intenzionale.</p>
+  </div>
+  <div class="features-grid reveal" style="transition-delay:.15s">
+    <div class="fcard"><div class="fcard-bar"></div><div class="fcard-icon">⚡</div><div class="fcard-title">Performance First</div><p class="fcard-desc">Servizi inutili disabilitati, telemetria rimossa, pianificazione CPU ottimizzata. Avvio sotto i 10 secondi su SSD.</p><span class="fcard-tag">task scheduler patched</span></div>
+    <div class="fcard"><div class="fcard-bar"></div><div class="fcard-icon">🧹</div><div class="fcard-title">Zero Bloat</div><p class="fcard-desc">Nessuna app preinstallata, nessun Cortana, nessun OneDrive forzato. Solo il sistema operativo puro.</p><span class="fcard-tag">debloated</span></div>
+    <div class="fcard"><div class="fcard-bar"></div><div class="fcard-icon">🎮</div><div class="fcard-title">Gaming Ready</div><p class="fcard-desc">Ottimizzazioni per gaming incluse. DX12, Vulkan e timer ad alta risoluzione preconfigurati. I driver vanno installati manualmente.</p><span class="fcard-tag">timer res patched</span></div>
+    <div class="fcard"><div class="fcard-bar"></div><div class="fcard-icon">🖥</div><div class="fcard-title">UI Minimalista</div><p class="fcard-desc">Shell pulita, temi scuri applicati al sistema, barra delle applicazioni essenziale. Nessun rumore visivo.</p><span class="fcard-tag">custom shell</span></div>
+    <div class="fcard"><div class="fcard-bar"></div><div class="fcard-icon">🔧</div><div class="fcard-title">Dev Friendly</div><p class="fcard-desc">WSL2, winget, PowerShell 7 e Windows Terminal preinstallati. Pronto per sviluppare al primo boot.</p><span class="fcard-tag">wsl2 + winget</span></div>
+    <div class="fcard" style="display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center"><div class="fcard-bar"></div><div style="font-family:var(--mono);font-size:.68rem;letter-spacing:.2em;color:var(--text-dim);text-transform:uppercase">More coming</div><div style="font-family:var(--display);font-size:2rem;letter-spacing:.1em;color:var(--text-dim);margin-top:.4rem">Soon</div></div>
+  </div>
+</div>
+
+<div style="padding:2rem 0"><div class="sep"><span>// DOWNLOAD //</span></div></div>
+
+<div class="dl-section-wrap" id="download">
+  <div class="section-wrap">
+    <div class="reveal">
+      <div class="section-tag">Download</div>
+      <h2>Scarica VoidOS.</h2>
+      <p class="section-sub" style="margin-bottom:3rem">Un'unica build. Pulita, veloce, pronta all'uso.</p>
+    </div>
+    <div class="reveal" style="transition-delay:.15s">
+      <div class="dl-card">
+        <div class="dl-top-line"></div>
+        <div class="dl-head"><span class="dl-name">VoidOS Lite</span><span class="dl-ver">v2.1.0</span></div>
+        <div class="dl-row"><span class="dl-key">Base</span><span class="dl-val">Windows 11 24H2</span></div>
+        <div class="dl-row"><span class="dl-key">Dimensione</span><span class="dl-val">2.1 GB</span></div>
+        <div class="dl-row"><span class="dl-key">Architettura</span><span class="dl-val">x86_64</span></div>
+        <div class="dl-row"><span class="dl-key">Rilascio</span><span class="dl-val">2025-03-14</span></div>
+        <div class="dl-row"><span class="dl-key">Formato</span><span class="dl-val">.ISO (bootable)</span></div>
+        <div class="dl-coming"><span class="dl-coming-dot"></span>In arrivo</div>
+        <div class="sha"><strong>SHA-256</strong>a3f9c2e1d84b6f57c90e2a1b3d4e5f678901234567890abcdef1234567890ab</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div style="padding:2rem 0"><div class="sep"><span>// REQUISITI //</span></div></div>
+
+<div class="section-wrap" id="requirements">
+  <div class="reveal">
+    <div class="section-tag">Requirements</div>
+    <h2>Requisiti minimi.</h2>
+  </div>
+  <div class="req-grid reveal" style="transition-delay:.1s">
+    <div class="req-card"><div class="req-key">CPU</div><div class="req-val">2 core / 2 GHz+</div><div class="req-note">x86_64 supportato</div></div>
+    <div class="req-card"><div class="req-key">RAM</div><div class="req-val">4 GB minimo</div><div class="req-note">8 GB consigliati</div></div>
+    <div class="req-card"><div class="req-key">Storage</div><div class="req-val">20 GB liberi</div><div class="req-note">SSD fortemente consigliato</div></div>
+    <div class="req-card"><div class="req-key">TPM</div><div class="req-val">Non richiesto</div><div class="req-note">Bypass integrato</div></div>
+    <div class="req-card"><div class="req-key">Secure Boot</div><div class="req-val">Non richiesto</div><div class="req-note">Disabilitare nel BIOS</div></div>
+    <div class="req-card"><div class="req-key">Display</div><div class="req-val">720p o superiore</div><div class="req-note">HDR supportato</div></div>
+  </div>
+</div>
+
+<footer>
+  <span class="footer-wordmark">VOIDVOIDVOID</span>
+  VoidOS non è affiliato, sponsorizzato o approvato da Microsoft Corporation.<br>
+  Windows è un marchio registrato di Microsoft. Usa a tuo rischio e pericolo.
+  <div class="footer-links">
+    <a href="#">Changelog</a><a href="#">GitHub</a><a href="#">Telegram</a>
+  </div>
+</footer>
+
+<script>
+// ── CURSOR ──
+const cursor=document.getElementById('cursor'),ring=document.getElementById('cursor-ring');
+let mx=0,my=0,rx=0,ry=0;
+document.addEventListener('mousemove',e=>{
+  mx=e.clientX;my=e.clientY;
+  cursor.style.left=mx+'px';cursor.style.top=my+'px';
+  // hover detection
+  const el=document.elementFromPoint(mx,my);
+  const isLink=el&&(el.closest('a')||el.closest('button'));
+  cursor.style.width=isLink?'6px':'12px';
+  cursor.style.height=isLink?'6px':'12px';
+  cursor.style.background=isLink?'var(--cyan)':'var(--accent)';
+  ring.style.width=isLink?'56px':'40px';
+  ring.style.height=isLink?'56px':'40px';
+  ring.style.borderColor=isLink?'rgba(34,211,238,.6)':'rgba(99,102,241,.5)';
+});
+(function animRing(){
+  rx+=(mx-rx)*.1;ry+=(my-ry)*.1;
+  ring.style.left=rx+'px';ring.style.top=ry+'px';
+  requestAnimationFrame(animRing);
+})();
+
+
+// ── GALAXY + BLACK HOLES ──
+const gc=document.getElementById('galaxy-canvas'),gx=gc.getContext('2d');
+let GW,GH;
+function gResize(){GW=gc.width=window.innerWidth;GH=gc.height=window.innerHeight}
+gResize();window.addEventListener('resize',gResize);
+
+// Stars
+const STAR_COUNT=700;
+const stars=Array.from({length:STAR_COUNT},()=>({
+  x:Math.random()*2-1, y:Math.random()*2-1,
+  z:Math.random(),
+  r:Math.random()*1.2+.2,
+  twinkle:Math.random()*Math.PI*2,
+  twinkleSpeed:Math.random()*.02+.005,
+  color:['#ffffff','#c7d2fe','#e0f2fe','#fde68a','#fbcfe8'][Math.floor(Math.random()*5)]
+}));
+
+// Galaxy arms (static spiral rendered onto offscreen, scrolled)
+let galaxyOffset=0;
+
+// Black holes
+const blackHoles=[
+  {x:.22,y:.18,r:38,pulseT:0,pulseSpeed:.012,rings:4},
+  {x:.78,y:.72,r:24,pulseT:Math.PI,pulseSpeed:.018,rings:3},
+];
+
+function drawStar(s,t){
+  const px=(s.x*.5+.5)*GW, py=(s.y*.5+.5)*GH;
+  const twinkle=.6+.4*Math.sin(s.twinkle+t*s.twinkleSpeed*60);
+  gx.globalAlpha=s.z*twinkle*.9;
+  gx.fillStyle=s.color;
+  gx.beginPath();
+  gx.arc(px,py,s.r*s.z,0,Math.PI*2);
+  gx.fill();
+}
+
+function drawNebulaCloud(cx,cy,rx,ry,col,alpha){
+  const grad=gx.createRadialGradient(cx,cy,0,cx,cy,Math.max(rx,ry));
+  grad.addColorStop(0,col.replace(')',`,${alpha})`).replace('rgb','rgba'));
+  grad.addColorStop(1,'rgba(0,0,0,0)');
+  gx.save();
+  gx.scale(rx/Math.max(rx,ry),ry/Math.max(rx,ry));
+  gx.globalAlpha=1;
+  gx.fillStyle=grad;
+  gx.beginPath();
+  gx.arc(cx*(Math.max(rx,ry)/rx),cy*(Math.max(rx,ry)/ry),Math.max(rx,ry),0,Math.PI*2);
+  gx.fill();
+  gx.restore();
+}
+
+function drawBlackHole(bh,t){
+  const cx=bh.x*GW, cy=bh.y*GH;
+  bh.pulseT+=bh.pulseSpeed;
+  const pulse=1+.04*Math.sin(bh.pulseT);
+
+  // accretion disk glow layers
+  const diskColors=[
+    [255,140,50],[200,80,255],[80,180,255],[255,255,180]
+  ];
+  for(let i=4;i>=0;i--){
+    const ri=bh.r*pulse*(1+i*.55);
+    const ci=diskColors[i%diskColors.length];
+    const a=i===0?.0:.04-i*.006;
+    if(a<=0)continue;
+    const grad=gx.createRadialGradient(cx,cy,bh.r*pulse*.4,cx,cy,ri);
+    grad.addColorStop(0,`rgba(${ci[0]},${ci[1]},${ci[2]},0)`);
+    grad.addColorStop(.5,`rgba(${ci[0]},${ci[1]},${ci[2]},${a})`);
+    grad.addColorStop(1,`rgba(${ci[0]},${ci[1]},${ci[2]},0)`);
+    gx.globalAlpha=1;
+    gx.fillStyle=grad;
+    gx.beginPath();
+    gx.arc(cx,cy,ri,0,Math.PI*2);
+    gx.fill();
+  }
+
+  // photon ring (bright thin ring)
+  gx.globalAlpha=.35+.1*Math.sin(bh.pulseT*2);
+  const ringGrad=gx.createRadialGradient(cx,cy,bh.r*pulse*.85,cx,cy,bh.r*pulse*1.15);
+  ringGrad.addColorStop(0,'rgba(255,200,100,0)');
+  ringGrad.addColorStop(.5,'rgba(255,220,130,.9)');
+  ringGrad.addColorStop(1,'rgba(255,200,100,0)');
+  gx.fillStyle=ringGrad;
+  gx.beginPath();gx.arc(cx,cy,bh.r*pulse*1.15,0,Math.PI*2);gx.fill();
+
+  // event horizon — pure black
+  gx.globalAlpha=1;
+  gx.fillStyle='#000000';
+  gx.beginPath();gx.arc(cx,cy,bh.r*pulse*.78,0,Math.PI*2);gx.fill();
+
+  // inner glow edge
+  const edgeGrad=gx.createRadialGradient(cx,cy,bh.r*pulse*.5,cx,cy,bh.r*pulse*.85);
+  edgeGrad.addColorStop(0,'rgba(0,0,0,1)');
+  edgeGrad.addColorStop(1,'rgba(99,50,200,.15)');
+  gx.globalAlpha=1;
+  gx.fillStyle=edgeGrad;
+  gx.beginPath();gx.arc(cx,cy,bh.r*pulse*.85,0,Math.PI*2);gx.fill();
+
+  // gravitational lensing streaks
+  gx.globalAlpha=.08+.04*Math.sin(bh.pulseT);
+  for(let i=0;i<8;i++){
+    const angle=(i/8)*Math.PI*2+bh.pulseT*.3;
+    const len=bh.r*(2.5+Math.sin(bh.pulseT+i)*0.5);
+    gx.strokeStyle=`hsl(${260+i*15},80%,70%)`;
+    gx.lineWidth=.8;
+    gx.beginPath();
+    gx.moveTo(cx+Math.cos(angle)*bh.r*1.2,cy+Math.sin(angle)*bh.r*1.2);
+    gx.lineTo(cx+Math.cos(angle)*len,cy+Math.sin(angle)*len);
+    gx.stroke();
+  }
+  gx.globalAlpha=1;
+}
+
+let gT=0;
+function galaxyLoop(){
+  gx.clearRect(0,0,GW,GH);
+  gT+=.4;
+
+  // nebula clouds
+  gx.globalAlpha=1;
+  drawNebulaCloud(GW*.3,GH*.4,GW*.35,GH*.25,'rgb(60,20,100)',.07);
+  drawNebulaCloud(GW*.7,GH*.3,GW*.28,GH*.2,'rgb(10,40,80)',.06);
+  drawNebulaCloud(GW*.55,GH*.65,GW*.32,GH*.28,'rgb(80,10,60)',.05);
+
+  // milky way band
+  const mwGrad=gx.createLinearGradient(0,GH*.2,GW,GH*.8);
+  mwGrad.addColorStop(0,'rgba(0,0,0,0)');
+  mwGrad.addColorStop(.3,'rgba(130,100,200,.04)');
+  mwGrad.addColorStop(.5,'rgba(160,130,220,.07)');
+  mwGrad.addColorStop(.7,'rgba(130,100,200,.04)');
+  mwGrad.addColorStop(1,'rgba(0,0,0,0)');
+  gx.globalAlpha=1;
+  gx.fillStyle=mwGrad;
+  gx.fillRect(0,0,GW,GH);
+
+  // stars
+  stars.forEach(s=>drawStar(s,gT));
+
+  // black holes
+  blackHoles.forEach(bh=>drawBlackHole(bh,gT));
+
+  requestAnimationFrame(galaxyLoop);
+}
+galaxyLoop();
+
+// ── PARTICLES ──
+const canvas=document.getElementById('particle-canvas'),ctx=canvas.getContext('2d');
+let W,H;
+function resize(){W=canvas.width=window.innerWidth;H=canvas.height=window.innerHeight}
+resize();window.addEventListener('resize',resize);
+const COLS=['rgba(99,102,241,','rgba(34,211,238,','rgba(192,132,252,'];
+class P{
+  constructor(){this.reset()}
+  reset(){
+    this.x=Math.random()*W;this.y=Math.random()*H;
+    this.r=Math.random()*1.4+.3;
+    this.vx=(Math.random()-.5)*.28;this.vy=(Math.random()-.5)*.28;
+    this.c=COLS[Math.floor(Math.random()*COLS.length)];
+    this.a=Math.random()*.45+.08;
+    this.life=Math.random()*220+80;this.age=0;
+  }
+  update(){
+    this.x+=this.vx;this.y+=this.vy;this.age++;
+    const dx=mx-this.x,dy=my-this.y,d=Math.sqrt(dx*dx+dy*dy);
+    if(d<200){this.vx+=dx/d*.018;this.vy+=dy/d*.018}
+    this.vx*=.99;this.vy*=.99;
+    if(this.age>this.life||this.x<-10||this.x>W+10||this.y<-10||this.y>H+10)this.reset();
+  }
+  draw(){
+    const a=this.a*(1-this.age/this.life);
+    ctx.beginPath();ctx.arc(this.x,this.y,this.r,0,Math.PI*2);
+    ctx.fillStyle=this.c+a+')';ctx.fill();
+  }
+}
+const pts=[];for(let i=0;i<130;i++)pts.push(new P());
+function drawLines(){
+  for(let i=0;i<pts.length;i++)for(let j=i+1;j<pts.length;j++){
+    const dx=pts[i].x-pts[j].x,dy=pts[i].y-pts[j].y,d=Math.sqrt(dx*dx+dy*dy);
+    if(d<90){ctx.beginPath();ctx.moveTo(pts[i].x,pts[i].y);ctx.lineTo(pts[j].x,pts[j].y);ctx.strokeStyle='rgba(99,102,241,'+(0.055*(1-d/90))+')';ctx.lineWidth=.5;ctx.stroke()}
+  }
+}
+(function loop(){ctx.clearRect(0,0,W,H);drawLines();pts.forEach(p=>{p.update();p.draw()});requestAnimationFrame(loop)})();
+
+// ── SPOTLIGHT ──
+document.querySelectorAll('.fcard,.req-card,.dl-card').forEach(card=>{
+  card.addEventListener('mousemove',e=>{
+    const r=card.getBoundingClientRect();
+    card.style.setProperty('--mx',(e.clientX-r.left)+'px');
+    card.style.setProperty('--my',(e.clientY-r.top)+'px');
+  });
+});
+
+// ── MAGNETIC BUTTONS ──
+document.querySelectorAll('.btn').forEach(btn=>{
+  btn.addEventListener('mousemove',e=>{
+    const r=btn.getBoundingClientRect();
+    btn.style.transform=`translate(${(e.clientX-r.left-r.width/2)*.25}px,${(e.clientY-r.top-r.height/2)*.25}px)`;
+  });
+  btn.addEventListener('mouseleave',()=>{btn.style.transform=''});
+});
+
+// ── SCROLL REVEAL ──
+const obs=new IntersectionObserver(entries=>entries.forEach(e=>{if(e.isIntersecting)e.target.classList.add('visible')}),{threshold:.1});
+document.querySelectorAll('.reveal').forEach(el=>obs.observe(el));
+
+// ── STAT COUNTER ANIMATION ──
+function animCount(el,target,suffix){
+  const isNum=!isNaN(parseFloat(target));
+  if(!isNum)return;
+  let start=0,duration=1400,startTime=null;
+  const num=parseFloat(target);
+  function step(ts){
+    if(!startTime)startTime=ts;
+    const p=Math.min((ts-startTime)/duration,1);
+    const val=p*num;
+    el.textContent=(suffix?'~':'')+val.toFixed(suffix?1:0)+(suffix||'');
+    if(p<1)requestAnimationFrame(step);else el.textContent=el.dataset.orig;
+  }
+  requestAnimationFrame(step);
+}
+const statObs=new IntersectionObserver(entries=>entries.forEach(e=>{
+  if(e.isIntersecting){
+    e.target.querySelectorAll('.stat-val').forEach(v=>{
+      v.dataset.orig=v.textContent;
+      if(v.textContent==='0')animCount(v,0,'');
+    });
+    statObs.unobserve(e.target);
+  }
+}),{threshold:.5});
+document.querySelectorAll('.stats-bar').forEach(b=>statObs.observe(b));
+</script>
+</body>
+</html>
