@@ -19,10 +19,11 @@ TPM / Secure Boot: not required
 
 ⚠️ Disclaimer
 VoidOS is not affiliated with, sponsored by, or endorsed by Microsoft Corporation. Windows is a registered trademark of Microsoft. Use at your own risk.
-The ISO isnt out and it will be finished 
-IMPORTANT
-im not making the ISO my friend is making and im helping him to do everything else like the website the account on socials etc
-and i cant add him because he dont have github
+The ISO isnt out and it will be finished.
+
+Creator of the custom ISO: CrimixOfficial
+
+tester, website maker, etc.: caccabludestroyer4000-ui
 
 https://github.com/caccabludestroyer4000-ui/VoidOS
 
