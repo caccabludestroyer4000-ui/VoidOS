@@ -12,7 +12,7 @@ What's included
 
 Info
 
-Base: Windows 11 24H2
+Base: Windows 11 LTSC
 Architecture: x86_64
 ISO size: ~2.1 GB
 TPM / Secure Boot: not required
@@ -27,5 +27,5 @@ tester, website maker, etc.: caccabludestroyer4000-ui
 
 https://github.com/caccabludestroyer4000-ui/VoidOS
 
-the website
+our website
 https://caccabludestroyer4000-ui.github.io/VoidOS/
